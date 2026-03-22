@@ -13,6 +13,7 @@ void arena_chunk_init(struct arena_chunk* ck, struct arena_chunk* next) {
 	ck->head = ck->buffer;
 }
 
+#ifndef __linux
 struct arena_chunk* arena_chunk_new(struct arena* a) {
 	struct arena_chunk* ck = malloc(ARENA_CHUNK_SIZE);
 	if (!ck) {
@@ -24,6 +25,24 @@ struct arena_chunk* arena_chunk_new(struct arena* a) {
 
 	return ck;
 }
+
+#else
+
+#include <sys/mman.h>
+
+struct arena_chunk* arena_chunk_new(struct arena* a) {
+	struct arena_chunk* ck = mmap(NULL, ARENA_CHUNK_SIZE, PROT_READ | PROT_WRITE,
+							   MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+	if (ck == MAP_FAILED) {
+		return NULL;
+	}
+
+	arena_chunk_init(ck, a->chunks);
+	a->chunks = ck;
+
+	return ck;
+}
+#endif
 
 void* arena_chunk_alloc(struct arena_chunk* ck, size_t s, size_t align) {
 	uint8_t* head = (uint8_t*)ALIGN((uintptr_t)ck->head, align);
@@ -57,7 +76,8 @@ void* arena_alloc_align(struct arena* a, size_t s, size_t align) {
 	return arena_chunk_alloc(ck, s, align);
 }
 
-void arena_clear(struct arena* a) {
+#ifndef __linux
+void arena_reset(struct arena* a) {
 	struct arena_chunk* ck = a->chunks;
 
 	while (ck) {
@@ -67,4 +87,24 @@ void arena_clear(struct arena* a) {
 	}
 
 	a->chunks = NULL;
+}
+#else
+
+void arena_reset(struct arena* a) {
+	struct arena_chunk* ck = a->chunks;
+
+	while (ck) {
+		struct arena_chunk* next = ck->next;
+		munmap(ck, ARENA_CHUNK_SIZE);
+		ck = next;
+	}
+
+	a->chunks = NULL;
+}
+
+#endif
+
+void arena_init(struct arena* a) {
+	a->chunks = NULL;
+	arena_chunk_new(a);
 }
