@@ -50,5 +50,6 @@ void test_arena_alloc() {
 int main(void) {
 	UNITY_BEGIN();
 	RUN_TEST(test_arena_align);
+	RUN_TEST(test_arena_alloc);
 	return UNITY_END();
 }
