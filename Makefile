@@ -10,7 +10,7 @@ BUILD = build
 OUT = $(BUILD)/lib
 TESTS = $(BUILD)/tests
 
-SRCS = arena.c
+SRCS = arena.c dyn_array.c
 SOURCES = $(foreach src,$(SRCS),$(SRC_DIR)/$(src))
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD)/%.o)
 
@@ -71,8 +71,12 @@ TEST_LDFLAGS = -L$(OUT)
 TEST_LLIBS = -lallocators
 
 .PHONY: tests
-tests: arena_test
+tests: arena_test dyn_array_test
 
 arena_test: tests/arena_test.c $(TARGET) tests_dir unity
+	$(CC) $(TEST_CFLAGS) $(BUILD)/unity.o $< $(TEST_LDFLAGS) $(TEST_LLIBS) -o $(TESTS)/$@
+	$(TESTS)/$@
+
+dyn_array_test: tests/dyn_array_test.c $(TARGET) tests_dir unity
 	$(CC) $(TEST_CFLAGS) $(BUILD)/unity.o $< $(TEST_LDFLAGS) $(TEST_LLIBS) -o $(TESTS)/$@
 	$(TESTS)/$@
